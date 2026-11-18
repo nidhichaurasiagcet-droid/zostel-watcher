@@ -62,12 +62,15 @@ def units_for(text, room_name):
 
 
 def check(page, debug=False):
-    page.goto(URL, wait_until="networkidle", timeout=60000)
-    page.wait_for_timeout(3000)  # let the date strips render
+    resp = page.goto(URL, wait_until="networkidle", timeout=60000)
+    page.wait_for_timeout(8000)  # let the date strips render
     text = page.inner_text("body")
-    if debug:
+    print("HTTP status:", resp.status if resp else None, "| title:", page.title(), "| text length:", len(text))
+    if debug or "--once" in sys.argv:
+        # Always save diagnostics so we can see what the script sees
         with open("page_text.txt", "w", encoding="utf-8") as f:
             f.write(text)
+        page.screenshot(path="page.png", full_page=True)
 
     u10 = units_for(text, MIXED_10)
     u8 = units_for(text, MIXED_8)
@@ -75,7 +78,10 @@ def check(page, debug=False):
     print(time.strftime("%H:%M:%S"), f"10-bed mixed={u10}, 8-bed mixed={u8}, 6-bed female={f6}")
 
     if u10 is None and u8 is None and f6 is None:
-        print("Could not read any room. Run with --debug and check page_text.txt")
+        print("Could not read any room. First 3000 characters of the page text:")
+        print("-----")
+        print(text[:3000])
+        print("-----")
         return None
 
     u10, u8, f6 = u10 or 0, u8 or 0, f6 or 0
